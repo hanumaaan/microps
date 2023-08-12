@@ -82,7 +82,7 @@ int net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data
         errorf("too long , dev=%s, mtu=%u, len=%zu", dev->name, dev->mtu, len);
         return -1;
     }
-    debugf("dev=%s, type=0x%04x, len=%zu", dev->name, dev->mtu, type, len);
+    debugf("dev=%s, type=0x%04x, len=%zu", dev->name, type, len);
     debugdump(data, len);
     if(dev->ops->transmit(dev, type, data, len, dst) == -1){
         errorf("device transtmit failure, dev=%s, len=%zu", dev->name, len);
@@ -93,7 +93,7 @@ int net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data
 
 int net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev)
 {
-    debugf("dev=%s, type=0x%04x, len=%zu", dev->name, dev->mtu, type, len);
+    debugf("dev=%s, type=0x%04x, len=%zu", dev->name, type, len);
     debugdump(data, len);
     return 0;
 }
@@ -101,6 +101,11 @@ int net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net
 int net_run(void)
 {
     struct net_device *dev;
+
+    if(intr_run() == -1){
+        errorf("intr_run() failuer");
+        return -1;
+    }
 
     debugf("oepn all devices...");
     for(dev = devices; dev; dev = dev->next){
@@ -118,11 +123,16 @@ void net_shutdown(void)
     for(dev = devices; dev; dev = dev->next){
         net_device_close(dev);
     }
+    intr_shutdown();
     debugf("shutting down");
 }
 
 int net_init(void)
 {
+    if(intr_init() == -1){
+        errorf("intr_init() failuer");
+        return -1;
+    }
     infof("initialized");
     return 0;
 }
